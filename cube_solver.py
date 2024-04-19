@@ -4,18 +4,38 @@ class Cube:
     def __init__(self, configuration):
         self.config = configuration
 
+    def rotate_face(self, face_index, clockwise=True):
+        """Rotate a single face 90 degrees clockwise or counterclockwise."""
+        face = self.config[face_index]
+        if clockwise:
+            # Rotate the face clockwise
+            new_face = face[6] + face[3] + face[0] + face[7] + face[4] + face[1] + face[8] + face[5] + face[2]
+        else:
+            # Rotate the face counterclockwise
+            new_face = face[2] + face[5] + face[8] + face[1] + face[4] + face[7] + face[0] + face[3] + face[6]
+        self.config[face_index] = new_face
+
+    def U_move(self):
+        """Perform the U move (rotate the top face clockwise)."""
+        self.rotate_face(0, clockwise=True)
+        front_top_row = self.config[1][:3]
+        self.config[1] = self.config[4][:3] + self.config[1][3:]  # Left to Front
+        self.config[4] = self.config[3][:3] + self.config[4][3:]  # Back to Left
+        self.config[3] = self.config[2][:3] + self.config[3][3:]  # Right to Back
+        self.config[2] = front_top_row + self.config[2][3:]       # Front to Right
+
+    def U_prime_move(self):
+        """Perform the U' move (rotate the top face counterclockwise)."""
+        self.rotate_face(0, clockwise=False)
+        front_top_row = self.config[1][:3]
+        self.config[1] = self.config[2][:3] + self.config[1][3:]
+        self.config[2] = self.config[3][:3] + self.config[2][3:]
+        self.config[3] = self.config[4][:3] + self.config[3][3:]
+        self.config[4] = front_top_row + self.config[4][3:]
+
     def is_solved(self):
         """Check if the cube is solved."""
-        return all(face == face[0] * len(face) for face in self.config)
-
-    def possible_moves(self):
-        """Generate all possible moves from the current configuration."""
-        return []
-
-    def perform_move(self, move):
-        """Perform a move and return a new Cube instance with the new configuration."""
-        new_config = self.config[:] 
-        return Cube(new_config)
+        return all(face == face[0]*9 for face in self.config)
 
 def bfs_solve(start_cube):
     queue = Queue()
