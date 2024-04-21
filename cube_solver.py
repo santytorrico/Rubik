@@ -36,6 +36,7 @@ class Cube:
     def is_solved(self):
         """Check if the cube is solved."""
         return all(face == face[0]*9 for face in self.config)
+    
 
 def bfs_solve(start_cube):
     queue = Queue()
@@ -56,9 +57,18 @@ def bfs_solve(start_cube):
 
     return []  # Return an empty list if no solution found
 
+def display_cube(cube):
+    
+    labels = ['Top', 'Front', 'Right', 'Back', 'Left', 'Bottom']
+    for i, face in enumerate(cube.config):
+        print(f"{labels[i]} Face:")
+        print(f"{face[0:3]}\n{face[3:6]}\n{face[6:9]}\n")
+
+
 if __name__ == '__main__':
     
     initial_config = ['WWWWWWWWW', 'GGGGGGGGG', 'RRRRRRRRR', 'BBBBBBBBB', 'OOOOOOOOO', 'YYYYYYYYY']
     cube = Cube(initial_config)
+    display_cube(cube)
     solution_moves = bfs_solve(cube)
     print("Solution moves:", solution_moves)
