@@ -36,6 +36,26 @@ class Cube:
     def is_solved(self):
         """Check if the cube is solved."""
         return all(face == face[0]*9 for face in self.config)
+
+def read_command(cube):
+    while True:
+        command = input("Enter a command (U, U', F, F', R, R', L, L', B, B', D, D', solve, scramble, exit): ").strip().upper()
+        if command == 'EXIT':
+            break
+        elif command in ['U', "U'", 'F', "F'", 'R', "R'", 'L', "L'", 'B', "B'", 'D', "D'"]:
+            if command == 'U':
+                cube.U_move()
+            elif command == "U'":
+                cube.U_prime_move()
+            # Add other moves here
+            display_cube(cube)
+        elif command == 'SOLVE':
+            moves = bfs_solve(cube)
+            print("Solution moves:", moves)
+            display_cube(cube)
+        elif command == 'SCRAMBLE':
+            cube.scramble()  # You would need to implement this method
+            display_cube(cube)
     
 
 def bfs_solve(start_cube):
@@ -70,5 +90,6 @@ if __name__ == '__main__':
     initial_config = ['WWWWWWWWW', 'GGGGGGGGG', 'RRRRRRRRR', 'BBBBBBBBB', 'OOOOOOOOO', 'YYYYYYYYY']
     cube = Cube(initial_config)
     display_cube(cube)
+    read_command(cube)
     solution_moves = bfs_solve(cube)
     print("Solution moves:", solution_moves)
