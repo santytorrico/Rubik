@@ -1,3 +1,6 @@
+import heapq
+from collections import deque
+
 class RubiksCube:
     def __init__(self, n=3, colors=['w', 'o', 'g', 'r', 'b', 'y'], file_path=None):
         self.n = n
@@ -10,20 +13,40 @@ class RubiksCube:
     def reset(self):
         """ Resets the cube to a solved state with unique colors on each face. """
         # Each face is a list of size x size filled with a single color
-        self.cube = [[[c for x in range(self.n)] for y in range(self.n)] for c in self.colors]
+        self.cube = [[[color for x in range(self.n)] for y in range(self.n)] for color in self.colors]
 
     def load_from_file(self, file_path):
         """ Load the cube's state from a file. """
-        self.cube = []
         try:
             with open(file_path, 'r') as file:
-                lines = file.readlines()
-                for i in range(0, len(lines), self.n):  # Assuming the file has self.n lines for each face
-                    face = [list(lines[j].strip()) for j in range(i, i + self.n)]
+                lines = [line.strip() for line in file if line.strip()]
+            if not self.validate_configuration(lines):
+                print("Invalid configuration. Loading default solved state instead.")
+                self.reset()
+            else:
+                self.cube = []
+                for i in range(0, len(lines), self.n):
+                    face = [list(lines[j]) for j in range(i, i + self.n)]
                     self.cube.append(face)
         except FileNotFoundError:
             print("File not found. Loading default solved state instead.")
             self.reset()
+    def validate_configuration(self, lines):
+        """ Validate the cube's configuration. """
+        if len(lines) != 6 * self.n:
+            return False
+        color_count = {color: 0 for color in self.colors}
+        for line in lines:
+            if len(line) != self.n:
+                return False
+            for char in line:
+                if char in color_count:
+                    color_count[char] += 1
+                else:
+                    return False
+        if any(count != self.n * self.n for count in color_count.values()):
+            return False
+        return True
 
     def show(self):
         """
@@ -37,7 +60,6 @@ class RubiksCube:
         l3 = '\n'.join(spacing + str(c) for c in self.cube[5])
         print(f'{l1}\n\n{l2}\n\n{l3}')
 
-    
     def horizontal_twist(self, row, direction):
         """ Horizontal twist of a row in the specified direction """
         if row < len(self.cube[0]):
@@ -134,14 +156,111 @@ class RubiksCube:
         else:
             print(f'ERROR - desired column outside of rubiks cube range. Please select a column between 0-{len(self.cube[0])-1}')
             return
+    def __lt__(self, other):
+        """
+        Define the less than operator to compare two RubiksCube instances based on their cube state.
+        """
+        return str(self.cube) < str(other.cube)
+    def get_successors(self):
+        """
+        Generate all possible successor states from the current state.
+        """
+        successors = []
+        for row in range(self.n):
+            for direction in [0, 1]:
+                new_state = RubiksCube(self.n, self.colors)
+                new_state.cube = [face[:] for face in self.cube]
+                new_state.horizontal_twist(row, direction)
+                successors.append(new_state)
+
+        for col in range(self.n):
+            for direction in [0, 1]:
+                new_state = RubiksCube(self.n, self.colors)
+                new_state.cube = [face[:] for face in self.cube]
+                new_state.vertical_twist(col, direction)
+                successors.append(new_state)
+
+        for col in range(self.n):
+            for direction in [0, 1]:
+                new_state = RubiksCube(self.n, self.colors)
+                new_state.cube = [face[:] for face in self.cube]
+                new_state.side_twist(col, direction)
+                successors.append(new_state)
+
+        return successors
+    
+    def heuristic(self):
+        """
+        Implement a heuristic function to estimate the distance or cost from the current state to the goal state.
+        """
+        cost = 0
+        for face in self.cube:
+            unique_colors = set(color for row in face for color in row)
+            cost += len(unique_colors) - 1  # Subtract 1 for the correct color
+        return cost
+
+    def is_goal_state(self):
+        """
+        Check if the current state is the goal state (solved cube).
+        """
+        return self.heuristic() == 0
 
     def solved(self):
-        """ Checks if the cube is in a solved state """
-        return all(all(len(set(row)) == 1 for row in self.cube[face]) for face in self.cube)
+        """
+        Checks if the cube is in a solved state
+        """
+        for i, face in enumerate(self.cube):
+            if any(len(set(row)) != 1 for row in face):
+                return False
+        return True
+    
+def solve_rubik_cube(initial_state):
+    frontier = []
+    heapq.heappush(frontier, (initial_state.heuristic(), initial_state))
+    came_from = {str(initial_state.cube): None}
+    cost_so_far = {str(initial_state.cube): 0}
 
+    while frontier:
+        _, current_state = heapq.heappop(frontier)
+
+        if current_state.is_goal_state():
+            path = []
+            state = current_state
+            while state is not None:  # Check if state is not None
+                if str(state.cube) in came_from:
+                    path.append(state)
+                    state = came_from[str(state.cube)]
+                else:
+                    break  # Exit the loop if state is not in came_from
+            return list(reversed(path))
+
+        for neighbor in current_state.get_successors():
+            neighbor_cube = str(neighbor.cube)
+            new_cost = cost_so_far[str(current_state.cube)] + 1
+            if neighbor_cube not in cost_so_far or new_cost < cost_so_far[neighbor_cube]:
+                cost_so_far[neighbor_cube] = new_cost
+                priority = new_cost + neighbor.heuristic()
+                heapq.heappush(frontier, (priority, neighbor))
+                came_from[neighbor_cube] = current_state
+
+    return None  # No solution found
+
+# initial_cube = RubiksCube(file_path='scrambled_cube.txt')
+initial_cube = RubiksCube(file_path='sample_cube.txt')
+solution = solve_rubik_cube(initial_cube)
+
+print("Is the cube solvable?", initial_cube.solved())
+
+if solution:
+    print("Solution found:")
+    for state in solution:
+        state.show()
+        print()
+else:
+    print("No solution found.")
 # Example usage of the class
-cube = RubiksCube(file_path='sample_cube.txt')
-cube.show()
+# cube = RubiksCube(file_path='sample_cube.txt')
+# cube.show()
 
 # print("Performing a horizontal twist on the middle row to the left:")
 # cube.horizontal_twist(1, 0)
