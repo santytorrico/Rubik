@@ -1,29 +1,29 @@
 class RubiksCube:
-    def __init__(
-        self,
-        n = 3,
-        colors = ['w', 'o', 'g', 'r', 'b', 'y'],
-        state = None
-    ):
-        if state is None:
-            self.n = n
-            self.colors = colors
-            self.reset()
+    def __init__(self, n=3, colors=['w', 'o', 'g', 'r', 'b', 'y'], file_path=None):
+        self.n = n
+        self.colors = colors
+        if file_path:
+            self.load_from_file(file_path)
         else:
-            self.n = int((len(state) / 6) ** (.5))
-            self.colors = []
-            self.cube = [[[]]]
-            for i, s in enumerate(state):
-                if s not in self.colours: self.colours.append(s)
-                self.cube[-1][-1].append(s)
-                if len(self.cube[-1][-1]) == self.n and len(self.cube[-1]) < self.n:
-                    self.cube[-1].append([])
-                elif len(self.cube[-1][-1]) == self.n and len(self.cube[-1]) == self.n and i < len(state) - 1:
-                    self.cube.append([[]])
+            self.reset()
+            
     def reset(self):
         """ Resets the cube to a solved state with unique colors on each face. """
         # Each face is a list of size x size filled with a single color
         self.cube = [[[c for x in range(self.n)] for y in range(self.n)] for c in self.colors]
+
+    def load_from_file(self, file_path):
+        """ Load the cube's state from a file. """
+        self.cube = []
+        try:
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+                for i in range(0, len(lines), self.n):  # Assuming the file has self.n lines for each face
+                    face = [list(lines[j].strip()) for j in range(i, i + self.n)]
+                    self.cube.append(face)
+        except FileNotFoundError:
+            print("File not found. Loading default solved state instead.")
+            self.reset()
 
     def show(self):
         """
@@ -140,12 +140,13 @@ class RubiksCube:
         return all(all(len(set(row)) == 1 for row in self.cube[face]) for face in self.cube)
 
 # Example usage of the class
-cube = RubiksCube()
-cube.show()
-print("Performing a horizontal twist on the middle row to the left:")
-cube.horizontal_twist(1, 0)
+cube = RubiksCube(file_path='sample_cube.txt')
 cube.show()
 
-print("Performing a vertical twist on the first column downwards:")
-cube.vertical_twist(0, 0)
-cube.show()
+# print("Performing a horizontal twist on the middle row to the left:")
+# cube.horizontal_twist(1, 0)
+# cube.show()
+
+# print("Performing a vertical twist on the first column downwards:")
+# cube.vertical_twist(0, 0)
+# cube.show()
