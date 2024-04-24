@@ -161,6 +161,7 @@ class RubiksCube:
         Define the less than operator to compare two RubiksCube instances based on their cube state.
         """
         return str(self.cube) < str(other.cube)
+    
     def get_successors(self):
         """
         Generate all possible successor states from the current state.
@@ -225,28 +226,38 @@ def solve_rubik_cube(initial_state):
 
         if current_state.is_goal_state():
             path = []
-            state = current_state
-            while state is not None:  # Check if state is not None
-                if str(state.cube) in came_from:
-                    path.append(state)
-                    state = came_from[str(state.cube)]
-                else:
-                    break  # Exit the loop if state is not in came_from
-            return list(reversed(path))
+            while current_state:
+                path.append(current_state)
+                current_state = came_from[str(current_state.cube)]
+            path.reverse()
+            return path 
+        
+        for next_state in current_state.get_successors():  # Check if state is not None
+            new_cost = cost_so_far[str(current_state.cube)]+1
+            if str(next_state.cube) not in cost_so_far or new_cost < cost_so_far[str(next_state.cube)]:
+                cost_so_far[str(next_state.cube)] = new_cost
+                priority = new_cost + next_state.heuristic()
+                heapq.heappush(frontier, (priority, next_state))
+                came_from[str(next_state.cube)] = current_state
 
-        for neighbor in current_state.get_successors():
-            neighbor_cube = str(neighbor.cube)
-            new_cost = cost_so_far[str(current_state.cube)] + 1
-            if neighbor_cube not in cost_so_far or new_cost < cost_so_far[neighbor_cube]:
-                cost_so_far[neighbor_cube] = new_cost
-                priority = new_cost + neighbor.heuristic()
-                heapq.heappush(frontier, (priority, neighbor))
-                came_from[neighbor_cube] = current_state
+        # for neighbor in current_state.get_successors():
+        #     neighbor_cube = str(neighbor.cube)
+        #     new_cost = cost_so_far[str(current_state.cube)] + 1
+        #     if neighbor_cube not in cost_so_far or new_cost < cost_so_far[neighbor_cube]:
+        #         cost_so_far[neighbor_cube] = new_cost
+        #         priority = new_cost + neighbor.heuristic()
+        #         heapq.heappush(frontier, (priority, neighbor))
+        #         came_from[neighbor_cube] = current_state
 
     return None  # No solution found
 
 # initial_cube = RubiksCube(file_path='scrambled_cube.txt')
 initial_cube = RubiksCube(file_path='sample_cube.txt')
+# initial_cube= RubiksCube()
+initial_cube.horizontal_twist(0,1)
+# initial_cube.vertical_twist(1,0)
+# initial_cube.side_twist(2,1)
+
 solution = solve_rubik_cube(initial_cube)
 
 print("Is the cube solvable?", initial_cube.solved())
